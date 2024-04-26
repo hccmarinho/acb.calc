@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de custos de arbitragem da ACB</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        form {
+            background: white;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            margin-top: 10px;
+            display: block;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* ensures padding doesn't affect width */
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #resultados {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calculadora de custos de arbitragem da ACB</h1>
+    <form id="calcForm">
+        <label for="valorDemanda">Valor da Demanda (R$):</label>
+        <input type="text" id="valorDemanda" oninput="formatarComoMoeda(this)" required><br><br>
+
+        <label for="numArbitros">Número de árbitros:</label>
+        <select id="numArbitros" required>
+            <option value="1">1</option>
+            <option value="3">3</option>
+        </select><br><br>
+
+        <label for="tipoArbitragem">Tipo de Arbitragem:</label>
+        <select id="tipoArbitragem" required>
+            <option value="Comum">Comum</option>
+            <option value="Expedita">Expedita</option>
+        </select><br><br>
+
+        <button type="button" onclick="calcularCustos()">Calcular Custos</button>
+    </form>
+
+    <div id="resultados">
+        <p>Taxa de Registro: R$ <span id="taxaRegistro">0</span></p>
+        <p>Honorários dos Árbitros: R$ <span id="honorariosArbitros">0</span></p>
+        <p>Taxa de Administração: R$ <span id="taxaAdministracao">0</span></p>
+    </div>
+
+    <script>
+        function formatarComoMoeda(elemento) {
+            let valor = elemento.value.replace(/\D/g, '').replace(/^0+/, ''); // Remove tudo que não é dígito e zeros à esquerda
+            if (valor.length < 3) {
+                valor = valor.padStart(3, '0'); // Garante que haja pelo menos três dígitos (001 para R$ 0,01)
+            }
+            valor = (parseInt(valor) / 100).toFixed(2); // Transforma em decimal
+            valor = valor.replace('.', ','); // Troca ponto por vírgula para o formato brasileiro
+            valor = valor.replace(/(\d)(?=(\d{3})+\,)/g, '$1.'); // Adiciona ponto como separador de milhar
+            elemento.value = valor;
+        }
+
+        function removerFormatacaoMoeda(valor) {
+            return parseFloat(valor.replace(/\./g, '').replace(',', '.')); // Remove pontos e troca vírgula por ponto
+        }
+
+        function calcularCustos() {
+            const campoValor = document.getElementById('valorDemanda');
+            const valorDemanda = campoValor.value.trim() ? removerFormatacaoMoeda(campoValor.value) : 0;
+            const numArbitros = parseInt(document.getElementById('numArbitros').value);
+            const tipoArbitragem = document.getElementById('tipoArbitragem').value;
+
+            // Cálculo da Taxa de Registro
+            let taxaRegistro = calcularTaxaRegistro(valorDemanda);
+
+            // Cálculo dos Honorários dos Árbitros
+            let honorariosBase = calcularHonorariosBase(valorDemanda);
+            let honorariosArbitros = honorariosBase * (numArbitros === 3 ? 3 : 1.15);
+
+            // Cálculo da Taxa de Administração
+            let taxaAdministracao = Math.max(5000, valorDemanda * 0.02);
+
+            // Desconto para arbitragem expedita
+            if (tipoArbitragem === 'Expedita') {
+                honorariosArbitros *= 0.70;
+                taxaAdministracao *= 0.70;
+            }
+
+            document.getElementById('taxaRegistro').textContent = taxaRegistro.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+\,)/g, '$1.');
+            document.getElementById('honorariosArbitros').textContent = honorariosArbitros.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+\,)/g, '$1.');
+            document.getElementById('taxaAdministracao').textContent = taxaAdministracao.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+\,)/g, '$1.');
+        }
+
+        function calcularTaxaRegistro(valorDemanda) {
+            if (valorDemanda <= 100000) return 1500;
+            else if (valorDemanda <= 250000) return 2000;
+            else if (valorDemanda <= 500000) return 2500;
+            else if (valorDemanda <= 750000) return 3000;
+            else if (valorDemanda <= 1000000) return 3500;
+            else if (valorDemanda <= 2000000) return 6500;
+            else if (valorDemanda <= 3000000) return 7500;
+            else if (valorDemanda <= 4000000) return 8500;
+            else if (valorDemanda <= 5000000) return 9500;
+            else if (valorDemanda <= 6000000) return 10500;
+            else if (valorDemanda <= 7000000) return 11500;
+            else if (valorDemanda <= 8000000) return 12500;
+            else if (valorDemanda <= 9000000) return 13500;
+            else if (valorDemanda <= 10000000) return 14500;
+            else if (valorDemanda <= 50000000) return 16000;
+            else return 20000;
+        }
+
+        function calcularHonorariosBase(valorDemanda) {
+            if (valorDemanda <= 100000) return 6000;
+            else if (valorDemanda <= 250000) return 10000;
+            else if (valorDemanda <= 500000) return 15000;
+            else if (valorDemanda <= 750000) return 19000;
+            else if (valorDemanda <= 1000000) return 23000;
+            else if (valorDemanda <= 2000000) return 30000;
+            else if (valorDemanda <= 3000000) return 40000;
+            else if (valorDemanda <= 4000000) return 50000;
+            else if (valorDemanda <= 5000000) return 60000;
+            else if (valorDemanda <= 6000000) return 70000;
+            else if (valorDemanda <= 7000000) return 80000;
+            else if (valorDemanda <= 8000000) return 90000;
+            else if (valorDemanda <= 9000000) return 100000;
+            else if (valorDemanda <= 10000000) return 110000;
+            else if (valorDemanda <= 50000000) return 120000;
+            else return 130000;
+        }
+    </script>
+</body>
+</html>
